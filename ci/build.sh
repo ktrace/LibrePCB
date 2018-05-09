@@ -36,6 +36,8 @@ mkdir -p ./artifacts/nightly_builds
 # Linux: Build AppImage
 if [ "${TRAVIS_OS_NAME-}" = "linux" ]
 then
+  TARGET="linux-x86_64" # used for the installer below
+  EXECUTABLE_EXT="run"  # used for the installer below
   LD_LIBRARY_PATH="" linuxdeployqt "./build/install/opt/share/applications/librepcb.desktop" -bundle-non-qt-libs -appimage
   if [ "${DEPLOY_APPIMAGE-}" = "true" ]
   then
@@ -46,6 +48,8 @@ fi
 # Mac: Build application bundle
 if [ "${TRAVIS_OS_NAME-}" = "osx" ]
 then
+  TARGET="mac-x86_64"  # used for the installer below
+  EXECUTABLE_EXT="dmg" # used for the installer below
   macdeployqt "./build/install/opt/bin/librepcb.app" -dmg
   if [ "${DEPLOY_BUNDLE-}" = "true" ]
   then
@@ -56,12 +60,26 @@ fi
 # Windows: Copy DLLs to output directory
 if [ -n "${APPVEYOR-}" ]
 then
+  TARGET="windows-x86" # used for the installer below
+  EXECUTABLE_EXT="exe" # used for the installer below
   cp -v "`cygpath -u \"$VCRT_DIR\"`"/*.dll     ./build/install/opt/bin/  # MS Visual C++ DLLs
   cp -v /c/MinGW/bin/zlib1.dll                 ./build/install/opt/bin/  # zlib DLL
   cp -v /c/OpenSSL-Win32/bin/*eay*.dll         ./build/install/opt/bin/  # OpenSSL DLLs
   cp -v "`cygpath -u \"$QTDIR\"`"/bin/lib*.dll ./build/install/opt/bin/  # MinGW DLLs
   windeployqt --compiler-runtime --force ./build/install/opt/bin/librepcb.exe # Qt DLLs
   cp -r ./build/install/opt/. ./artifacts/nightly_builds/librepcb-nightly-windows-x86/
+fi
+
+# Build installer
+if [ "$DEPLOY_INSTALLER" = "true" ]
+then
+  ./dist/installer/update_metadata.sh "$TARGET" "0.1.0"  # TODO: How to determine version number?
+  PACKAGES_DIR="./artifacts/installer_packages/$TARGET"
+  mkdir -p $PACKAGES_DIR/librepcb.nightly.app/data/nightly
+  cp -r ./dist/installer/packages/. $PACKAGES_DIR/
+  cp -r ./build/install/opt/. $PACKAGES_DIR/librepcb.nightly.app/data/nightly/
+  binarycreator --online-only -c ./dist/installer/config/config.xml -p $PACKAGES_DIR \
+                ./artifacts/nightly_builds/librepcb-installer-nightly-$TARGET.$EXECUTABLE_EXT
 fi
 
 # Build Doxygen documentation
