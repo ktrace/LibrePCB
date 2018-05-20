@@ -28,4 +28,9 @@ then
   brew install qt5 ccache p7zip
   brew link --force qt5
   export PATH="/usr/local/opt/ccache/libexec:$PATH"
+
+# Install dependencies on Windows (inside MSYS2)
+elif [ -n "${APPVEYOR-}" ]
+then
+  pacman -Syu --noconfirm --needed openssl p7zip
 fi
